@@ -1,0 +1,9 @@
+*.npy
+*.pth
+*.pyc
+*.out
+*.sh
+data
+./env
+env
+exp_result
