@@ -10,7 +10,7 @@ from tools.utils import AverageMeter, to_scalar, time_str
 
 def batch_trainer(epoch, model, train_loader, criterion, optimizer):
     model.train()
-    epoch_time = time.tzzime()
+    epoch_time = time.time()
     loss_meter = AverageMeter()
 
     batch_num = len(train_loader)

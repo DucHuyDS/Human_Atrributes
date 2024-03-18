@@ -18,7 +18,7 @@ def argument_parser():
     parser.add_argument('--momentum', type=float, default=0.9)
     parser.add_argument('--weight_decay', type=float, default=5e-4)
     parser.add_argument("--train_split", type=str, default="train", choices=['train', 'trainval'])
-    parser.add_argument("--valid_split", type=str, default="valid", choices=['test', 'valid'])
+    parser.add_argument("--valid_split", type=str, default="val", choices=['test', 'valid'])
     parser.add_argument("--test_split", type=str, default="test", choices=['test', 'valid'])
 
     parser.add_argument('--device', default=0, type=str, help='gpu device ids for CUDA_VISIBLE_DEVICES')
