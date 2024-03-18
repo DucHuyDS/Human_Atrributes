@@ -80,7 +80,6 @@ def valid_trainer(model, valid_loader, criterion):
 
 def test_trainer(model, test_loader):
     model.eval()
-    loss_meter = AverageMeter()
 
     preds_probs = []
     gt_list = []
@@ -93,9 +92,7 @@ def test_trainer(model, test_loader):
             test_logits = model(imgs)
             test_probs = torch.sigmoid(test_logits)
             preds_probs.append(test_probs.cpu().numpy())
-            loss_meter.update(to_scalar(test_loss))
 
-    test_loss = loss_meter.avg
 
     gt_label = np.concatenate(gt_list, axis=0)
     preds_probs = np.concatenate(preds_probs, axis=0)
