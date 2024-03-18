@@ -112,13 +112,15 @@ def main(args):
 
     test_result = get_pedestrian_metrics(test_gt, test_probs)
 
+
+    print('----------------------------------------------------------------')
     print(f'Evaluation on test set, \n',
             'ma: {:.4f},  pos_recall: {:.4f} , neg_recall: {:.4f} \n'.format(
                 test_result.ma, np.mean(test_result.label_pos_recall), np.mean(test_result.label_neg_recall)),
             'Acc: {:.4f}, Prec: {:.4f}, Rec: {:.4f}, F1: {:.4f}'.format(
                 test_result.instance_acc, test_result.instance_prec, test_result.instance_recall,
                 test_result.instance_f1))
-
+    print('----------------------------------------------------------------')
 
 
 def trainer(epoch, model, train_loader, valid_loader, criterion, optimizer, lr_scheduler,

@@ -23,7 +23,6 @@ def main(args):
     dataset_info = pickle.load(open(data_path, 'rb+'))
     
     atrrid = np.array(dataset_info.attr_name)
-
     _, valid_tsfm = get_transform(args)
 
     train_set = AttrDataset(args=args, split=args.train_split, transform=_)
