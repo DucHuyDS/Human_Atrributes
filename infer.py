@@ -39,9 +39,10 @@ def main(args):
     model.load_state_dict(checkpoint['state_dicts'])
     model.eval()
 
-    img = Image.open(args.img_path) #data\PA100k\data\000001.jpg
-
+    img = Image.open(args.img_path).convert('RGB') #data\PA100k\data\000001.jpg
+    
     img = valid_tsfm(img)
+     
     img = img.cuda()
 
     with torch.no_grad():
@@ -49,8 +50,9 @@ def main(args):
         test_probs = torch.sigmoid(test_logits)
         test_probs = test_probs.cpu().numpy()
         
-    print(atrrid[test_probs[0] > args.threshold])
-
+    print(atrrid[test_probs[0] > 0])
+    
+    print(test_probs[0][test_probs[0] > 0])
 
 
 if __name__ == '__main__':
