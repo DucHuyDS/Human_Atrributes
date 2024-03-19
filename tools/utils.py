@@ -49,7 +49,10 @@ def set_seed(rand_seed):
     torch.backends.cudnn.enabled = True
     torch.manual_seed(rand_seed)
     torch.cuda.manual_seed(rand_seed)
-
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    os.environ['CUDNN_DETERMINISTIC'] = str(rand_seed)
+    os.environ['PYTHONHASHSEED'] = str(rand_seed)
 
 def may_mkdirs(dir_name):
     # if not os.cam_path.exists(os.cam_path.dirname(os.cam_path.abspath(fname))):
@@ -152,10 +155,10 @@ class ReDirectSTD(object):
         self.f = None
         self.immediately_visiable = immediately_visiable
 
-        if fpath is not None:
-            # Remove existing log file
-            if os.path.exists(fpath):
-                os.remove(fpath)
+        # if fpath is not None:
+        #     # Remove existing log file
+        #     if os.path.exists(fpath):
+        #         os.remove(fpath)
         if console == 'stdout':
             sys.stdout = self
         else:
