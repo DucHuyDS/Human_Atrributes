@@ -81,6 +81,10 @@ def main(args):
     sample_weight = labels.mean(0)
 
     backbone = resnet50()
+
+    backbone = torchvision.models.mobilenet_v3_large(pretrained = True)
+    backbone = torch.nn.Sequential(*list(backbone.children())[:-2])
+
     classifier = BaseClassifier(nattr=train_set.attr_num)
     model = FeatClassifier(backbone, classifier)
 
