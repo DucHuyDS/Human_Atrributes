@@ -1,3 +1,4 @@
+import torchvision
 import os
 import pprint
 from collections import OrderedDict, defaultdict
@@ -15,7 +16,6 @@ from models.base_block import FeatClassifier, BaseClassifier
 from models.resnet import resnet50
 from tools.function import get_model_log_path, get_pedestrian_metrics
 from tools.utils import time_str, save_ckpt, ReDirectSTD, set_seed
-
 set_seed(605)
 
 
@@ -80,12 +80,15 @@ def main(args):
     labels = train_set.label
     sample_weight = labels.mean(0)
 
-    backbone = resnet50()
+    # backbone = resnet50()
 
     backbone = torchvision.models.mobilenet_v3_large(pretrained = True)
     backbone = torch.nn.Sequential(*list(backbone.children())[:-2])
 
-    classifier = BaseClassifier(nattr=train_set.attr_num)
+    fake_img     = torch.randn(1, 3, 224, 224)
+    feature_dim = backbone(fake_img).shape[1]
+
+    classifier = BaseClassifier(nattr=train_set.attr_num, dim = feature_dim)
     model = FeatClassifier(backbone, classifier)
 
     if torch.cuda.is_available():
