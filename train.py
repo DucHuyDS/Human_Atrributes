@@ -14,7 +14,7 @@ from dataset.AttrDataset import AttrDataset, get_transform
 from loss.CE_loss import CEL_Sigmoid
 from models.base_block import FeatClassifier, BaseClassifier
 from models.resnet import resnet50
-from tools.function import get_model_log_path, get_pedestrian_metrics
+from tools.function import get_model_log_path, get_pedestrian_metrics, show_detail_labels
 from tools.utils import time_str, save_ckpt, ReDirectSTD, set_seed
 set_seed(605)
 
@@ -40,7 +40,7 @@ def main(args):
     print(train_tsfm)
 
     train_set = AttrDataset(args=args, split=args.train_split, transform=train_tsfm)
-
+ 
     train_loader = DataLoader(
         dataset=train_set,
         batch_size=args.batchsize,
@@ -78,6 +78,7 @@ def main(args):
           f'attr_num : {train_set.attr_num}')
 
     labels = train_set.label
+
     sample_weight = labels.mean(0)
 
     # backbone = resnet50()
@@ -128,6 +129,8 @@ def main(args):
                 test_result.instance_acc, test_result.instance_prec, test_result.instance_recall,
                 test_result.instance_f1))
     print('----------------------------------------------------------------')
+
+    show_detail_labels(test_gt, test_probs, train_set.attr_id)
 
 
 def trainer(epoch, model, train_loader, valid_loader, criterion, optimizer, lr_scheduler,

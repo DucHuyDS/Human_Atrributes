@@ -141,3 +141,17 @@ def get_pedestrian_metrics(gt_label, preds_probs, threshold=0.5):
     result.error_num, result.fn_num, result.fp_num = false_pos + false_neg, false_neg, false_pos
 
     return result
+
+
+
+def show_detail_labels(gt_label, preds_probs, labels):
+    label_accuracy  = np.sum((gt_label == 1) * (preds_probs == 1), axis=0).astype(float)
+    label_sum = np.sum((gt_label == 1), axis=0).astype(float)
+
+    label_percent = label_accuracy / label_sum
+
+    for i in range(len(labels)):
+        print(f"{labels[i]}:{label_percent[i] * 100:.2f}% - ({label_accuracy[i]}/{label_sum[i]})")
+
+
+    return None
