@@ -7,6 +7,9 @@ import torch
 from torch.autograd import Variable
 import random
 import numpy as np
+from torch import distributed as dist
+
+from tools.distributed import unwrap_model
 
 
 def time_str(fmt=None):
@@ -53,6 +56,7 @@ def set_seed(rand_seed):
     torch.backends.cudnn.benchmark = False
     os.environ['CUDNN_DETERMINISTIC'] = str(rand_seed)
     os.environ['PYTHONHASHSEED'] = str(rand_seed)
+
 
 def may_mkdirs(dir_name):
     # if not os.cam_path.exists(os.cam_path.dirname(os.cam_path.abspath(fname))):
@@ -155,10 +159,10 @@ class ReDirectSTD(object):
         self.f = None
         self.immediately_visiable = immediately_visiable
 
-        # if fpath is not None:
-        #     # Remove existing log file
-        #     if os.path.exists(fpath):
-        #         os.remove(fpath)
+        if fpath is not None:
+            # Remove existing log file
+            if os.path.exists(fpath):
+                os.remove(fpath)
         if console == 'stdout':
             sys.stdout = self
         else:
@@ -313,6 +317,10 @@ def load_ckpt(modules_optims, ckpt_file, load_to_cpu=True, verbose=True):
     return ckpt['ep'], ckpt['scores']
 
 
+# def get_state_dict(model, unwrap_fn=unwrap_model):
+#     return unwrap_fn(model).state_dict()
+
+
 def save_ckpt(model, ckpt_files, epoch, metric):
     """
     Note:
@@ -324,9 +332,10 @@ def save_ckpt(model, ckpt_files, epoch, metric):
     if not os.path.exists(os.path.dirname(os.path.abspath(ckpt_files))):
         os.makedirs(os.path.dirname(os.path.abspath(ckpt_files)))
 
-    save_dict = {'state_dicts': model.state_dict(),
+    save_dict = {'state_dicts': unwrap_model(model).state_dict(),
                  'epoch': f'{time_str()} in epoch {epoch}',
-                 'metric': metric}
+                 'metric': metric,}
+
     torch.save(save_dict, ckpt_files)
 
 
@@ -438,3 +447,4 @@ class data_prefetcher():
         target = self.next_target
         self.preload()
         return input, target
+

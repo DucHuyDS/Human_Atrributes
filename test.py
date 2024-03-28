@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import pickle
 
 from dataset.augmentation import get_transform
@@ -15,14 +16,13 @@ from tqdm import tqdm
 from dataset.pedes_attr.pedes import PedesAttr
 from metrics.ml_metrics import get_map_metrics, get_multilabel_metrics
 from models.base_block import FeatClassifier
-# from models.model_factory import model_dict, classifier_dict
 
 from tools.function import get_model_log_path, get_reload_weight
 from tools.utils import set_seed, str2bool, time_str
-from models.backbone import resnet
+from models.backbone import  resnet
 from losses import bceloss, scaledbceloss
 import yaml
-from PIL import Image
+from models.model_ema import ModelEmaV2
 
 set_seed(605)
 
@@ -34,13 +34,26 @@ def main(args):
     exp_dir = os.path.join('exp_result', prime_service['DATASET']['NAME'])
     model_dir, log_dir = get_model_log_path(exp_dir, prime_service['NAME'])
 
-    _, valid_tsfm = get_transform(prime_service)
+    # print(prime_service['DATASET'])
+    train_tsfm, valid_tsfm = get_transform(prime_service)
     print(valid_tsfm)
 
-    test_set = PedesAttr(cfg=prime_service, split=prime_service['DATASET']['TRAIN_SPLIT'], transform=valid_tsfm,
+    test_set = PedesAttr(cfg=prime_service, split=prime_service['DATASET']['TEST_SPLIT'], transform=valid_tsfm,
                             target_transform=prime_service['DATASET']['TARGETTRANSFORM'])
 
-    atrrid = np.array(test_set.attr_id)
+
+    test_loader = DataLoader(
+        dataset=test_set,
+        batch_size=prime_service['TRAIN']['BATCH_SIZE'],
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True,
+    )
+
+
+
+    print( f"{prime_service['DATASET']['TEST_SPLIT']} set: {len(test_loader.dataset)}, "
+          f"attr_num : {test_set.attr_num}")
 
     backbone, c_output = build_backbone(prime_service['BACKBONE']['TYPE'], prime_service['BACKBONE']['MULTISCALE'])
 
@@ -64,22 +77,44 @@ def main(args):
         model.to(device)
 
     model.eval()
-
-    img = Image.open(args.img_path).convert('RGB') #data\PA100k\data\000001.jpg
     
-    img = valid_tsfm(img)
-     
+    preds_probs = []
+    gt_list = []
+    path_list = []
+
     with torch.no_grad():
-            img = img.to(device)
-            test_logits, attns = model(img.unsqueeze(0))
+        for step, (imgs, gt_label, imgname) in enumerate(tqdm(test_loader)):
+            imgs = imgs.to(device)
+            gt_label = gt_label.to(device)
+            test_logits, attns = model(imgs, gt_label)
 
             test_probs = torch.sigmoid(test_logits[0])
 
-            test_probs = test_probs.cpu().numpy()
+            path_list.extend(imgname)
+            gt_list.append(gt_label.cpu().numpy())
+            preds_probs.append(test_probs.cpu().numpy())
 
-    print(atrrid[test_probs[0] > args.threshold])
-    
-    print(test_probs[0][test_probs[0] > args.threshold])
+
+    gt_label = np.concatenate(gt_list, axis=0)
+    preds_probs = np.concatenate(preds_probs, axis=0)
+
+
+
+    test_result = get_pedestrian_metrics(gt_label, preds_probs)
+
+    print(f'Evaluation on test set, \n',
+            'ma: {:.4f}, label_f1: {:4f}, pos_recall: {:.4f} , neg_recall: {:.4f} \n'.format(
+                test_result.ma, np.mean(test_result.label_f1), np.mean(test_result.label_pos_recall),
+                np.mean(test_result.label_neg_recall)),
+            'Acc: {:.4f}, Prec: {:.4f}, Rec: {:.4f}, F1: {:.4f}'.format(
+                test_result.instance_acc, test_result.instance_prec, test_result.instance_recall,
+                test_result.instance_f1)
+            )
+
+    show_detail_labels(gt_label, preds_probs, test_set.attr_id)
+
+    # with open(os.path.join(model_dir, 'results_test_feat_best.pkl'), 'wb+') as f:
+    #     pickle.dump([test_result, gt_label, preds_probs, attn_list, path_list], f, protocol=4)
 
 
 
@@ -92,10 +127,6 @@ def argument_parser():
         default="./configs/pedes_baseline/pa100k.yaml",
 
     )
-
-
-    parser.add_argument("--img_path", type=str, required = True)
-    parser.add_argument("--threshold", type=float, default=0.5)
 
     args = parser.parse_args()
 

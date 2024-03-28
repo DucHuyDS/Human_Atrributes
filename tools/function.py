@@ -3,16 +3,39 @@ from collections import OrderedDict
 
 import numpy as np
 import torch
-from easydict import EasyDict
 
 from tools.utils import may_mkdirs
 
 
+def seperate_weight_decay(named_params, lr, weight_decay=1e-5, skip_list=()):
+    decay = []
+    no_decay = []
+    for name, param in named_params:
+        if not param.requires_grad:
+            continue
+        if len(param.shape) == 1 or name in skip_list:
+            no_decay.append(param)
+        # if 'bias' in name:
+        #     no_decay.append(param)
+        else:
+            decay.append(param)
+    return [{'params': no_decay, 'lr': lr, 'weight_decay': 0.},
+            {'params': decay, 'lr': lr, 'weight_decay': weight_decay}]
+
+
 def ratio2weight(targets, ratio):
     ratio = torch.from_numpy(ratio).type_as(targets)
+
+    # --------------------- dangwei li TIP20 ---------------------
     pos_weights = targets * (1 - ratio)
     neg_weights = (1 - targets) * ratio
     weights = torch.exp(neg_weights + pos_weights)
+
+
+    # --------------------- AAAI ---------------------
+    # pos_weights = torch.sqrt(1 / (2 * ratio.sqrt())) * targets
+    # neg_weights = torch.sqrt(1 / (2 * (1 - ratio.sqrt()))) * (1 - targets)
+    # weights = pos_weights + neg_weights
 
     # for RAP dataloader, targets element may be 2, with or without smooth, some element must great than 1
     weights[targets > 1] = 0.0
@@ -20,11 +43,11 @@ def ratio2weight(targets, ratio):
     return weights
 
 
-def get_model_log_path(root_path, visenv):
-    multi_attr_model_dir = os.path.join(root_path, f'{visenv}', 'img_model')
+def get_model_log_path(root_path, model_name):
+    multi_attr_model_dir = os.path.join(root_path, model_name, 'img_model')
     may_mkdirs(multi_attr_model_dir)
 
-    multi_attr_log_dir = os.path.join(root_path, f'{visenv}', 'log')
+    multi_attr_log_dir = os.path.join(root_path, model_name, 'log')
     may_mkdirs(multi_attr_log_dir)
 
     return multi_attr_model_dir, multi_attr_log_dir
@@ -71,90 +94,23 @@ class LogVisual:
             self.val_loss.append(kwargs['val_loss'])
 
 
-def get_pkl_rootpath(dataset):
+def get_pkl_rootpath(dataset, zero_shot):
     root = os.path.join("./data", f"{dataset}")
-    data_path = os.path.join(root, 'dataset.pkl')
+    if zero_shot:
+        data_path = os.path.join(root, 'dataset_zs_run0.pkl')
+    else:
+        data_path = os.path.join(root, 'dataset_all.pkl')  #
 
     return data_path
 
 
-def get_pedestrian_metrics(gt_label, preds_probs, threshold=0.5):
-    pred_label = preds_probs > threshold
+def get_reload_weight(model_path, model, pth='ckpt_max.pth'):
+    model_path = os.path.join(model_path, pth)
+    load_dict = torch.load(model_path, map_location=lambda storage, loc: storage)
 
-    eps = 1e-20
-    result = EasyDict()
+    pretrain_dict = load_dict['state_dicts']
+    print(f"best performance {load_dict['metric']} in epoch : {load_dict['epoch']}")
 
-    ###############################
-    # label metrics
-    # TP + FN
-    gt_pos = np.sum((gt_label == 1), axis=0).astype(float)
-    # TN + FP
-    gt_neg = np.sum((gt_label == 0), axis=0).astype(float)
-    # TP
-    true_pos = np.sum((gt_label == 1) * (pred_label == 1), axis=0).astype(float)
-    # TN
-    true_neg = np.sum((gt_label == 0) * (pred_label == 0), axis=0).astype(float)
-    # FP
-    false_pos = np.sum(((gt_label == 0) * (pred_label == 1)), axis=0).astype(float)
-    # FN
-    false_neg = np.sum(((gt_label == 1) * (pred_label == 0)), axis=0).astype(float)
+    model.load_state_dict(pretrain_dict, strict=True)
 
-    label_pos_recall = 1.0 * true_pos / (gt_pos + eps)  # true positive
-    label_neg_recall = 1.0 * true_neg / (gt_neg + eps)  # true negative
-    # mean accuracy
-    label_ma = (label_pos_recall + label_neg_recall) / 2
-
-    result.label_pos_recall = label_pos_recall
-    result.label_neg_recall = label_neg_recall
-    result.label_prec = true_pos / (true_pos + false_pos + eps)
-    result.label_acc = true_pos / (true_pos + false_pos + false_neg + eps)
-    result.label_f1 = 2 * result.label_prec * result.label_pos_recall / (
-            result.label_prec + result.label_pos_recall + eps)
-
-    result.label_ma = label_ma
-    result.ma = np.mean(label_ma)
-
-    ################
-    # instance metrics
-    gt_pos = np.sum((gt_label == 1), axis=1).astype(float)
-    true_pos = np.sum((pred_label == 1), axis=1).astype(float)
-    # true positive
-    intersect_pos = np.sum((gt_label == 1) * (pred_label == 1), axis=1).astype(float)
-    # IOU
-    union_pos = np.sum(((gt_label == 1) + (pred_label == 1)), axis=1).astype(float)
-
-    instance_acc = intersect_pos / (union_pos + eps)
-    instance_prec = intersect_pos / (true_pos + eps)
-    instance_recall = intersect_pos / (gt_pos + eps)
-    instance_f1 = 2 * instance_prec * instance_recall / (instance_prec + instance_recall + eps)
-
-    instance_acc = np.mean(instance_acc)
-    instance_prec = np.mean(instance_prec)
-    instance_recall = np.mean(instance_recall)
-    instance_f1 = np.mean(instance_f1)
-
-    result.instance_acc = instance_acc
-    result.instance_prec = instance_prec
-    result.instance_recall = instance_recall
-    result.instance_f1 = instance_f1
-
-    result.error_num, result.fn_num, result.fp_num = false_pos + false_neg, false_neg, false_pos
-
-    return result
-
-
-def show_detail_labels(gt_label, preds_probs, labels, threshold = 0.5):
-
-    pred_label = preds_probs > threshold
-
-    label_accuracy  = np.sum((gt_label == 1) * (pred_label == 1), axis=0).astype(float)
-    label_sum = np.sum((gt_label == 1), axis=0).astype(float)
-
-    
-    label_percent = label_accuracy / label_sum
-
-
-    for i in range(len(labels)):
-        print(f"{labels[i]}:{label_percent[i] * 100:.2f}% - ({label_accuracy[i]}/{label_sum[i]})")
-
-    return None
+    return model
