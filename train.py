@@ -18,7 +18,6 @@ from tools.function import get_model_log_path, get_pedestrian_metrics, show_deta
 from tools.utils import time_str, save_ckpt, ReDirectSTD, set_seed
 set_seed(605)
 
-
 def main(args):
     visenv_name = args.dataset
     exp_dir = os.path.join('exp_result', args.dataset)
