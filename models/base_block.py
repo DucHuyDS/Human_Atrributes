@@ -112,5 +112,8 @@ class FeatClassifier(nn.Module):
     def forward(self, x, label=None):
         feat_map = self.backbone(x)
         logits, feat = self.classifier(feat_map, label)
+        if torch.onnx.is_in_onnx_export():
+            logits = logits[0].sigmoid()
+            return logits
         return logits, feat
 
