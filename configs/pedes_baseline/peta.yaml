@@ -1,21 +1,25 @@
-NAME: 'resnet50.base.adam'
+NAME: 'model_peta'
+REDIRECTOR: True
 
 DATASET:
   TYPE: 'pedes'
   NAME: 'PETA'
-  TRAIN_SPLIT: 'trainval'
-  VAL_SPLIT: 'test'
+  TRAIN_SPLIT: 'train'
+  VAL_SPLIT: 'val'
+  TEST_SPLIT: 'test'
   ZERO_SHOT: False
   LABEL: 'eval'
   HEIGHT: 256
   WIDTH: 192
+  TARGETTRANSFORM: []
 
 RELOAD:
   TYPE: False
   NAME: 'backbone'
 
 BACKBONE:
-  TYPE: 'resnet50'
+  TYPE: 'resnet18'
+  MULTISCALE: False
 
 CLASSIFIER:
   NAME: 'linear'
@@ -27,20 +31,34 @@ LOSS:
   TYPE: 'bceloss'
   LOSS_WEIGHT: [1]
   SAMPLE_WEIGHT: 'weight'
+  SIZESUM: True
 
 
 TRAIN:
-  CLIP_GRAD: True
+  CLIP_GRAD: True #False
   BATCH_SIZE: 64
+  MAX_EPOCH: 10
+  SHUFFLE: True
+  NUM_WORKERS: 4
+  BN_WD: True
+  AUX_LOSS_START: -1
+  DATAAUG:
+    TYPE: 'base'
+    AUTOAUG_PROB: 0.5
   OPTIMIZER:
-    TYPE: 'adam'
-    WEIGHT_DECAY: 5e-4
+    TYPE: 'adam' #adam
+    WEIGHT_DECAY: 0.0005 #5e-4
+    MOMENTUM: 0.9
   LR_SCHEDULER:
     TYPE: 'plateau'
     LR_FT: 0.0001
     LR_NEW: 0.0001
+    LR_STEP: [0]
+    WMUP_COEF: 0.1
   EMA:
-    ENABLE: False
+    ENABLE: True
+    DECAY: 0.9998
+    FORCE_CPU: False
 
 METRIC:
   TYPE: 'pedestrian'
