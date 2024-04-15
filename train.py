@@ -108,7 +108,6 @@ def main(args):
         pin_memory=True,
     )
 
-
     test_loader = DataLoader(
         dataset=test_set,
         batch_size=prime_service['TRAIN']['BATCH_SIZE'],
@@ -116,6 +115,9 @@ def main(args):
         num_workers=4,
         pin_memory=True,
     )
+    print(f"train -> {len(train_loader)*64}")
+    print(f"valid -> {len(valid_loader)*64}")
+    print(f"test  -> {len(test_loader)*64}")
 
     if args.local_rank == 0:
         print('-' * 60)
