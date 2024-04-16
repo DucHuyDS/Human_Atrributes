@@ -53,7 +53,7 @@ class PedesAttr(data.Dataset):
         self.transform = transform
         self.target_transform = target_transform
 
-        self.root_path = f'./data/{cfg['DATASET']['NAME']}/data'
+        self.root_path = f"./data/{cfg['DATASET']['NAME']}/data"
 
         if self.target_transform:
             self.attr_num = len(self.target_transform)
