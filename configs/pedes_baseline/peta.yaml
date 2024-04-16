@@ -1,5 +1,6 @@
 NAME: 'model_peta'
 REDIRECTOR: True
+DISTRIBUTTED: False
 
 DATASET:
   TYPE: 'pedes'
@@ -16,6 +17,7 @@ DATASET:
 RELOAD:
   TYPE: False
   NAME: 'backbone'
+  PTH: ''
 
 BACKBONE:
   TYPE: 'resnet18'
@@ -26,11 +28,12 @@ CLASSIFIER:
   POOLING: 'avg'
   SCALE: 1
   BN: False
+  TYPE: 'base'
 
 LOSS:
   TYPE: 'bceloss'
   LOSS_WEIGHT: [1]
-  SAMPLE_WEIGHT: 'weight'
+  SAMPLE_WEIGHT: 'weight' # ""
   SIZESUM: True
 
 
@@ -65,3 +68,23 @@ METRIC:
 
 VIS:
   CAM: 'valid'
+  VISDOM: False
+  TENSORBOARD:
+    ENABLE: True
+
+
+
+
+INFER:
+  SAMPLING: False
+
+TRANS:
+  DIM_HIDDEN: 256
+  DROPOUT: 0.1
+  NHEADS: 8
+  DIM_FFD: 2048
+  ENC_LAYERS: 6
+  DEC_LAYERS: 6
+  PRE_NORM: False
+  EOS_COEF: 0.1
+  NUM_QUERIES: 100
