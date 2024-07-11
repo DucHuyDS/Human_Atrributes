@@ -1,12 +1,12 @@
-NAME: 'model_peta'
+NAME: 'model'
 REDIRECTOR: True
 DISTRIBUTTED: False
 
 DATASET:
   TYPE: 'pedes'
   NAME: 'PETA'
-  TRAIN_SPLIT: 'train'
-  VAL_SPLIT: 'val'
+  TRAIN_SPLIT: 'trainval'
+  VAL_SPLIT: 'test'
   TEST_SPLIT: 'test'
   ZERO_SHOT: False
   LABEL: 'eval'
@@ -20,7 +20,7 @@ RELOAD:
   PTH: ''
 
 BACKBONE:
-  TYPE: 'resnet18'
+  TYPE: 'convnext' #twins-svt-small_3rdparty_8xb128_in1k
   MULTISCALE: False
 
 CLASSIFIER:
@@ -40,7 +40,7 @@ LOSS:
 TRAIN:
   CLIP_GRAD: True #False
   BATCH_SIZE: 64
-  MAX_EPOCH: 10
+  MAX_EPOCH: 30
   SHUFFLE: True
   NUM_WORKERS: 4
   BN_WD: True
@@ -61,8 +61,9 @@ TRAIN:
   EMA:
     ENABLE: True
     DECAY: 0.9998
-    FORCE_CPU: False
-
+    FORCE_CPU: False 
+        
+        
 METRIC:
   TYPE: 'pedestrian'
 

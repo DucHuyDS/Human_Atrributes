@@ -6,20 +6,7 @@ from models.registry import LOSSES
 def build_backbone(key, multi_scale=False):
 
     model_dict = {
-        'mobilenetv3_l' : 960,
-        'resnet34': 512,
-        'resnet18': 512,
-        'resnet50': 2048,
-        'resnet101': 2048,
-        'tresnet': 2432,
-        'swin_s': 768,
-        'swin_b': 1024,
-        'vit_s': 768,
-        'vit_b': 768,
-        'bninception': 1024,
-        'tresnetM': 2048,
-        'tresnetL': 2048,
-
+        'convnext' : 320,
     }
 
     model = BACKBONE[key]()
@@ -36,4 +23,3 @@ def build_classifier(key):
 def build_loss(key):
 
     return LOSSES[key]
-

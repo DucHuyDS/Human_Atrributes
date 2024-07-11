@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from tools.distributed import reduce_tensor
 from tools.utils import AverageMeter, to_scalar, time_str
-
+from dataset.augmentation import DataAugMethod
 
 def logits4pred(criterion, logits_list):
     if criterion.__class__.__name__.lower() in ['bceloss']:
@@ -41,10 +41,13 @@ def batch_trainer(cfg, args, epoch, model, model_ema, train_loader, criterion, o
 
         batch_time = time.time()
         imgs, gt_label = imgs.cuda(), gt_label.cuda()
+
+        aug = DataAugMethod(len(imgs))
+        imgs = aug.augment_input(imgs)
         train_logits, feat = model(imgs, gt_label)
 
+        loss_list = [aug.augment_criterion(criterion, train_logits, gt_label)]
 
-        loss_list, loss_mtr = criterion(train_logits, gt_label)
 
         train_loss = 0
 

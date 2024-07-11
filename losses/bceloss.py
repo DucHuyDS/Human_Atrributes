@@ -31,7 +31,16 @@ class BCELoss(nn.Module):
 
             loss_m = (loss_m * sample_weight.cuda())
 
-        # losses = loss_m.sum(1).mean() if self.size_sum else loss_m.mean()
-        loss = loss_m.sum(1).mean() if self.size_sum else loss_m.sum()
+        distance = self.pairwise_distance(logits, targets)
+        
+        loss = loss_m.sum(1).mean() + distance
 
         return [loss], [loss_m]
+    
+    def pairwise_distance(self, logits, targets):
+        
+        distances_minkowski_p3 = torch.sum(torch.abs(logits[:, None, :] - targets[None, :, :]) ** 3, axis=2) ** (1 / 3)
+        
+        distances_minkowski_p2 = torch.sqrt(torch.sum((logits - targets) ** 2, axis=1))
+        
+        return distances_minkowski_p3.mean() + distances_minkowski_p2.mean()

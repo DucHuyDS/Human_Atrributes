@@ -6,7 +6,6 @@ import torch.nn.init as init
 
 import torch.nn.functional as F
 from torch.nn.modules.batchnorm import _BatchNorm
-
 from models.registry import CLASSIFIER
 
 
@@ -36,44 +35,19 @@ class LinearClassifier(BaseClassifier):
 
 
     def forward(self, feature, label=None):
-
         if len(feature.shape) == 3:  # for vit (bt, nattr, c)
-
             bt, hw, c = feature.shape
             # NOTE ONLY USED FOR INPUT SIZE (256, 192)
             h = 16
             w = 12
             feature = feature.reshape(bt, h, w, c).permute(0, 3, 1, 2)
 
-        feat = self.pool(feature).view(feature.size(0), -1)
+        if len(feature.shape) == 2:
+            feat = feature
+        else:
+            feat = self.pool(feature).view(feature.size(0), -1)
         x = self.logits(feat)
-
         return [x], feature
-
-
-
-@CLASSIFIER.register("cosine")
-class NormClassifier(BaseClassifier):
-    def __init__(self, nattr, c_in, bn=False, pool='avg', scale=30):
-        super().__init__()
-
-        self.logits = nn.Parameter(torch.FloatTensor(nattr, c_in))
-
-        stdv = 1. / math.sqrt(self.logits.data.size(1))
-        self.logits.data.uniform_(-stdv, stdv)
-
-        self.pool = pool
-        if pool == 'avg':
-            self.pool = nn.AdaptiveAvgPool2d(1)
-        elif pool == 'max':
-            self.pool = nn.AdaptiveMaxPool2d(1)
-
-    def forward(self, feature, label=None):
-        feat = self.pool(feature).view(feature.size(0), -1)
-        feat_n = F.normalize(feat, dim=1)
-        weight_n = F.normalize(self.logits, dim=1)
-        x = torch.matmul(feat_n, weight_n.t())
-        return [x], feat_n
 
 
 def initialize_weights(module):
@@ -110,10 +84,13 @@ class FeatClassifier(nn.Module):
             return self.backbone.named_parameters()
 
     def forward(self, x, label=None):
-        feat_map = self.backbone(x)
+        try:
+            feat_map = self.backbone.extract_feat(x, stage='backbone')[-1]
+        except:
+            feat_map = self.backbone(x)
         logits, feat = self.classifier(feat_map, label)
+        
         if torch.onnx.is_in_onnx_export():
             logits = logits[0].sigmoid()
             return logits
         return logits, feat
-
